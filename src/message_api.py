@@ -30,6 +30,7 @@ def database_connection():
 def mysql_error(e):
     return jsonify({"error": str(e)}), 500
 
+# Helper method to execute cursor for POST requests
 def execute_cursor(connection, script, values):
     cursor = connection.cursor(dictionary=True)
     cursor.execute(script, (values))
@@ -37,11 +38,13 @@ def execute_cursor(connection, script, values):
     cursor.close()
     connection.close()
 
+# Helper method to fetchall for GET requests
 def execute_cursor_fetchall(cursor, script, values):
     if not isinstance(values, (list, tuple)):
         values = (values,)
     cursor.execute(script, (values))
     return cursor.fetchall()
+
 
 @app.route('/users', methods=['POST'])
 def create_user():
@@ -84,7 +87,7 @@ def send_message():
     
     try:
         connection = database_connection()
-        message_id = f"{sender_id}/{receiver_id}" # Chat id generation 
+        message_id = f"{min(sender_id, receiver_id)}/{max(receiver_id, sender_id)}" # Chat id generation 
         
         script = """
         INSERT INTO messages (sender_id, receiver_id, message, chat_id)
@@ -113,15 +116,61 @@ def get_message():
         SELECT * FROM messages
         WHERE receiver_id = %s AND is_read = 0;
         """
-        messages = execute_cursor_fetchall(cursor, script, receiver_id)
-        # TODO add mark as read tag once viewed
+        cursor.execute(script, (receiver_id,))
+        messages = cursor.fetchall()
+        message_count = len(messages)
+        
+        # Send notification message
+        if message_count == 1:
+            message = f"You have {message_count} new message."
+        else:
+            message = f"You have {message_count} new messages."
+        
+        if messages:
+            # Add read tag to message
+            update_script = """
+            UPDATE messages
+            SET is_read = 1
+            WHERE receiver_id = %s AND is_read = 0;
+            """
+            cursor.execute(update_script, (receiver_id,))
+            connection.commit()
+        else:
+            return jsonify({"message": "You have no new messages."}), 200
+              
         cursor.close()
         connection.close()
         
-        return jsonify({"messages": messages})
+        return jsonify({"messages": messages, "message_count": message}), 200
     except mysql.connector.Error as e:
         return mysql_error(e)
 
+
+@app.route('/messages/history', methods=['GET'])
+def get_history():
+    # Get data
+    chat_id= request.args.get('chat_id')
+    
+    try:
+        connection = database_connection()
+        cursor = connection.cursor()
+        
+        script = """
+        SELECT * FROM messages
+        WHERE chat_id = %s;
+        """
+        
+        cursor.execute(script, (chat_id,))
+        messages = cursor.fetchall()
+        
+        cursor.close()
+        connection.close()
+        
+        return jsonify({"messages": messages}), 200
+    
+    except mysql.connector.Error as e:
+        return mysql_error(e)
+        
 
 
 # Start app
