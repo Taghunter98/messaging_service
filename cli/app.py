@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 
 # Connect to REST API
-load_dotenv('/home/josh/Documents/Projects/blog_rest_api/db/db_config.env')
+load_dotenv('/home/josh/Documents/Projects/messaging_service/src/variables.env')
 API_BASE_URL = os.getenv('BASE_URL')
 
 def fetch_messages(receiver_id):

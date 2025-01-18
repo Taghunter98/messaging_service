@@ -3,10 +3,12 @@ import mysql.connector
 import ssl
 import os
 from dotenv import load_dotenv
+from flask_cors import CORS
 
-load_dotenv('/home/josh/Documents/Projects/messaging_service/src/variables.env') # File path
+load_dotenv() # File path
 
 app = Flask(__name__) # Create app
+CORS(app)
 
 # Load .env variables
 DB_HOST = os.getenv('DB_HOST')         # Host endpoint
