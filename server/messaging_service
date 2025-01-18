@@ -4,8 +4,8 @@ import ssl
 import os
 from flask_cors import CORS
 
-app = Flask(__name__) # Create app
-CORS(app, origins=["*"])
+app = Flask(__name__) 
+CORS(app, origins=["*"])  # This already handles CORS headers, so no need for the @app.after_request function
 
 @app.after_request
 def add_cors_headers(response):
@@ -176,10 +176,10 @@ def get_history():
         return mysql_error(e)
         
 
-# Run app with SSL
+# Start app with SSL
 context = ssl.SSLContext(ssl.PROTOCOL_TLS)
 context.load_cert_chain(certfile='/home/ec2-user/certificate.pem', keyfile='/home/ec2-user/private.key')
 
 # Start app
-if __name__=="__main__":
-    app.run(debug=True, host='0.0.0.0', port=5000, ssl_context='adhoc')
+if __name__ == "__main__":
+    app.run(debug=True, host='0.0.0.0', port=5000, ssl_context=context)
